@@ -243,6 +243,12 @@ void path_plan_strategy4(
 	}
 
 	tk::spline s;
+	cout << "set_spline ptsx as " << endl;
+	for (int j = 0; j < ptsx.size(); j ++)
+	{	
+		cout << ptsx[j] << " ";
+	}
+	cout << endl;
 	s.set_points(ptsx, ptsy);
 	
 	for (int i = 0; i < path_size; i ++)
