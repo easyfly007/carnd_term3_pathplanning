@@ -201,18 +201,26 @@ bool is_target_lane_safe(int target_lane, const vector<vector<double> > & sensor
 
 		if (obs_car_d > target_lane * 4 && obs_car_d <target_lane * 4 + 4 )
 		{
-			if (obs_car_v <= car_v && obs_car_s >= car_s && obs_car_s < car_s + safe_dist_ahead)
+			if (obs_car_v <= car_v + 1.0)
 			{
-				cout << "try to switch lane, target_lane= " << target_lane << " not safe" << endl;
-				return false;
+				// a slow car ahead
+				if (obs_car_s >= car_s- 10.0 && obs_car_s < car_s + safe_dist_ahead)
+				{
+					cout << "try to switch lane, target_lane = " 
+					<< target_lane << " not safe, a slow car at front " << endl;
+					return false;
+				}
 			}
-			else if (obs_car_s > car_s)
+			
+			if (obs_car_v >= car_v - 1.0)
 			{
+				// a fast car behind
 				double check_car_s = obs_car_s + prev_size * 0.02 * obs_car_v;
 				// we will check in a futuer s range that if ego car and checked are will collision
-				if (check_car_s > car_s && check_car_s - car_s < 30)
+				if (obs_car_s < car_s + 10.0 && check_car_s > car_s && check_car_s - car_s < 50)
 				{
-					cout << "try to switch lane, target lane = " << target_lane << " not safe" << endl;
+					cout << "try to switch lane, target lane = " 
+					<< target_lane << " not safe, a fast car behind" << endl;
 					return false;
 				}
 			}
@@ -270,11 +278,12 @@ void buildTrajectory(
 		ptsx.push_back(ref_x);
 		ptsy.push_back(ref_y);
 	}
-	vector<double> next_wp0 = getXY(car_s + ref_v * 1, 4 * target_lane + 2,
+	double previous_path_length = path_size * ref_v *0.02;
+	vector<double> next_wp0 = getXY(car_s + previous_path_length + ref_v * 1, 4 * target_lane + 2,
 		map_waypoints_s, map_waypoints_x,map_waypoints_y);
-	vector<double> next_wp1 = getXY(car_s + ref_v * 2, 4 * target_lane + 2, 
+	vector<double> next_wp1 = getXY(car_s + previous_path_length + ref_v * 2, 4 * target_lane + 2, 
 		map_waypoints_s, map_waypoints_x,map_waypoints_y);
-	vector<double> next_wp2 = getXY(car_s + ref_v * 3, 4 * target_lane + 2, 
+	vector<double> next_wp2 = getXY(car_s + previous_path_length + ref_v * 3, 4 * target_lane + 2, 
 		map_waypoints_s, map_waypoints_x,map_waypoints_y);
 	
 	// data points for smoothing
@@ -447,7 +456,7 @@ double behaviorControl(
 	}
 	else if (ref_v < 49.0 - 0.45)
 	{
-		ref_v += 0.125;
+		ref_v += 0.225;
 		cout << " speed up ref_v to " << ref_v << endl;
 	}
 
@@ -457,7 +466,7 @@ double behaviorControl(
 
 
 
-double ref_v = -1.0;
+double ref_v = 1.0;
 int lane = 1;
 int last_lane = 1;
 
