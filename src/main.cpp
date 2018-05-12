@@ -364,7 +364,7 @@ double behaviorControl(
 	bool tooclose = false;
 	// safe_dist will be based on the car speed
 	// we given a 3 seconds response time
-	double safe_dist = car_v * 1.0;
+	double safe_dist = car_v * 1.0 + 10.0;
 	// if (safe_dist < 30)
 	// 	safe_dist = 30.0;
 
