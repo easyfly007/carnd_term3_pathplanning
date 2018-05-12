@@ -232,7 +232,7 @@ bool is_target_lane_safe(int target_lane, const vector<vector<double> > & sensor
 
 
 // smooth the line
-void path_plan_strategy4(
+void buildTrajectory(
 	vector<double> &next_x_vals, vector<double> &next_y_vals, int current_lane, int target_lane,
 	double car_yaw, double car_s, double car_d, double car_x, double car_y, double ref_v,
 	vector<double> &previous_path_x, vector<double> &previous_path_y,
@@ -343,7 +343,7 @@ void path_plan_strategy4(
 
 // add sensor fusion, check the other cars, lower down the ref speed 
 // also decide the target lane
-double path_plan_strategy5(
+double behaviorControl(
 	vector<double> &next_x_vals, vector<double> &next_y_vals, int &lane, int last_lane,
 	double car_yaw, double car_s, double car_d, double car_x, double car_y, double ref_v, double car_v,
 	const vector<double> &previous_path_x, const vector<double> &previous_path_y,
@@ -554,13 +554,13 @@ int main() {
 			// 	previous_path_x, previous_path_y,
 			// 	map_waypoints_x, map_waypoints_y,map_waypoints_s, map_waypoints_dx, map_waypoints_dy);
 			last_lane = lane;
-			ref_v =  path_plan_strategy5(
+			ref_v =  behaviorControl(
 				next_x_vals, next_y_vals, lane, last_lane,
 				car_yaw, car_s, car_d, car_x, car_y, ref_v, car_speed,
 				previous_path_x, previous_path_y, end_path_s, end_path_d, map_waypoints_x,
 				map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy, sensor_fusion);
 
-			path_plan_strategy4(
+			buildTrajectory(
 				next_x_vals, next_y_vals, last_lane, lane, 
 				car_yaw, car_s, car_d, car_x, car_y, ref_v,
 				previous_path_x, previous_path_y,
