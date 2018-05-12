@@ -270,7 +270,6 @@ void buildTrajectory(
 		ptsx.push_back(ref_x);
 		ptsy.push_back(ref_y);
 	}
-	double safe_dist = ref_v;
 	vector<double> next_wp0 = getXY(car_s + ref_v * 1, 4 * target_lane + 2,
 		map_waypoints_s, map_waypoints_x,map_waypoints_y);
 	vector<double> next_wp1 = getXY(car_s + ref_v * 2, 4 * target_lane + 2, 
@@ -345,7 +344,7 @@ void buildTrajectory(
 // also decide the target lane
 double behaviorControl(
 	vector<double> &next_x_vals, vector<double> &next_y_vals, int &lane, int last_lane,
-	double car_yaw, double car_s, double car_d, double car_x, double car_y, double ref_v, double car_v,
+	double car_yaw, double car_s, double car_d, double car_x, double car_y, double ref_v,
 	const vector<double> &previous_path_x, const vector<double> &previous_path_y,
 	double end_path_s, double end_path_d,
 	const vector<double> &map_waypoints_x,
@@ -358,17 +357,12 @@ double behaviorControl(
 	// sensor_fusion
 	// [id, x, y, vx, vy, s, d]
 	int prev_size = previous_path_x.size();
-	// if (prev_size > 0)
-		// car_s = end_path_s;
 	
 	bool tooclose = false;
 	// safe_dist will be based on the car speed
 	// we given a 3 seconds response time
-	double safe_dist = car_v * 1.0 + 10.0;
-	// if (safe_dist < 30)
-	// 	safe_dist = 30.0;
-
-	cout << "lane = " << lane << ", car_v = " << car_v << ", safe dist = " << safe_dist << endl;
+	double safe_dist = ref_v * 1.0 + 10.0;
+	cout << "lane = " << lane << ", ref_v = " << ref_v << ", safe dist = " << safe_dist << endl;
 	double front_car_v = 0.;
  	for (int i = 0; i < sensor_fusion.size(); i ++)
 	{
@@ -383,7 +377,7 @@ double behaviorControl(
 
 		if (obs_car_d > lane * 4 && obs_car_d < lane * 4 + 4 )
 		{
-			if (obs_car_v <= car_v && obs_car_s >= car_s && obs_car_s < car_s + safe_dist)
+			if (obs_car_v <= ref_v && obs_car_s >= car_s && obs_car_s < car_s + safe_dist)
 			{
 				cout << " a car in the safe_dist range, car_s = " << car_s 
 					<< ", obs car s = " << obs_car_s <<  ", with speed = " << obs_car_v << endl;
@@ -407,19 +401,16 @@ double behaviorControl(
 
 	if (tooclose)
 	{
-		cout << " too close, slow down ref_v from " << ref_v << " to " << ref_v - 0.25 << endl;
-		
-
 		bool lane_switch = false;
 		if (lane == 0 && ref_v < 47 &&
-			is_target_lane_safe(1, sensor_fusion, car_yaw, car_s, car_d, car_v, prev_size))
+			is_target_lane_safe(1, sensor_fusion, car_yaw, car_s, car_d, ref_v, prev_size))
 		{
 			lane = 1;
 			lane_switch = true;
 			cout << "switch from lane 0 to lane 1" << endl;
 		}
 		else if ( lane == 2 &&  ref_v < 47 &&
-			is_target_lane_safe(1, sensor_fusion, car_yaw, car_s, car_d, car_v, prev_size))
+			is_target_lane_safe(1, sensor_fusion, car_yaw, car_s, car_d, ref_v, prev_size))
 		{
 			lane_switch = true;
 			lane = 1;
@@ -428,30 +419,35 @@ double behaviorControl(
 		else if (lane == 1)
 		{
 			if (  ref_v < 47 &&
-				is_target_lane_safe(0, sensor_fusion, car_yaw, car_s, car_d, car_v, prev_size))
+				is_target_lane_safe(0, sensor_fusion, car_yaw, car_s, car_d, ref_v, prev_size))
 			{
 				lane_switch = true;
 				lane = 0;
 				cout << "switch from lane 1 to lane 0" << endl;
 			}
 			else if ( ref_v < 47 &&
-			 is_target_lane_safe(2, sensor_fusion, car_yaw, car_s, car_d, car_v, prev_size))
+			 is_target_lane_safe(2, sensor_fusion, car_yaw, car_s, car_d, ref_v, prev_size))
 			{
 				lane_switch = true;
 				lane = 2;
 				cout << "switch from lane 1 to lane 2" << endl;
 			}
 		}
+		if (lane_switch == false)
+		{
+			// in case there's a slow care in fron of us and the target lane is not safe,
+			// slow down more to avoid collision
+			double ref_old = ref_v;
+			double speed_diff = ref_v - front_car_v;
+			ref_v -= 0.225;
+			ref_v -= speed_diff * 0.05;
+			cout << "ref_v switch from " << ref_old << " to " << ref_v << endl;
+		}
 		
-		// in case there's a slow care in fron of us and the target lane is not safe,
-		// slow down more to avoid collision
-		double speed_diff = ref_v - front_car_v;
-		ref_v -= 0.225;
-		ref_v -= speed_diff * 0.05;
 	}
 	else if (ref_v < 49.0 - 0.45)
 	{
-		ref_v += 0.225;
+		ref_v += 0.125;
 		cout << " speed up ref_v to " << ref_v << endl;
 	}
 
@@ -461,7 +457,7 @@ double behaviorControl(
 
 
 
-double ref_v = 0.;
+double ref_v = -1.0;
 int lane = 1;
 int last_lane = 1;
 
@@ -553,10 +549,13 @@ int main() {
 			// path_plan_strategy3(next_x_vals, next_y_vals, car_yaw, car_x, car_y, 
 			// 	previous_path_x, previous_path_y,
 			// 	map_waypoints_x, map_waypoints_y,map_waypoints_s, map_waypoints_dx, map_waypoints_dy);
+			if (ref_v < 0.0)
+				ref_v = car_speed;
+
 			last_lane = lane;
 			ref_v =  behaviorControl(
 				next_x_vals, next_y_vals, lane, last_lane,
-				car_yaw, car_s, car_d, car_x, car_y, ref_v, car_speed,
+				car_yaw, car_s, car_d, car_x, car_y, ref_v,
 				previous_path_x, previous_path_y, end_path_s, end_path_d, map_waypoints_x,
 				map_waypoints_y, map_waypoints_s, map_waypoints_dx, map_waypoints_dy, sensor_fusion);
 
