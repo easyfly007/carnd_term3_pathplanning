@@ -201,10 +201,10 @@ bool is_target_lane_safe(int target_lane, const vector<vector<double> > & sensor
 
 		if (obs_car_d > target_lane * 4 && obs_car_d <target_lane * 4 + 4 )
 		{
-			if (obs_car_v <= car_v + 1.0)
+			if (obs_car_v <= car_v + 0.8)
 			{
 				// a slow car ahead
-				if (obs_car_s >= car_s- 10.0 && obs_car_s < car_s + safe_dist_ahead)
+				if (obs_car_s >= car_s - 8.0 && obs_car_s < car_s + safe_dist_ahead)
 				{
 					cout << "try to switch lane, target_lane = " 
 					<< target_lane << " not safe, a slow car at front " << endl;
@@ -212,12 +212,12 @@ bool is_target_lane_safe(int target_lane, const vector<vector<double> > & sensor
 				}
 			}
 			
-			if (obs_car_v >= car_v - 1.0)
+			if (obs_car_v >= car_v - 0.8)
 			{
 				// a fast car behind
 				double check_car_s = obs_car_s + prev_size * 0.02 * obs_car_v;
 				// we will check in a futuer s range that if ego car and checked are will collision
-				if (obs_car_s < car_s + 10.0 && check_car_s > car_s && check_car_s - car_s < 50)
+				if (obs_car_s < car_s + 8.0 && check_car_s > car_s && check_car_s - car_s < 50)
 				{
 					cout << "try to switch lane, target lane = " 
 					<< target_lane << " not safe, a fast car behind" << endl;
@@ -456,7 +456,7 @@ double behaviorControl(
 	}
 	else if (ref_v < 49.0 - 0.45)
 	{
-		ref_v += 0.225;
+		ref_v += 0.205;
 		cout << " speed up ref_v to " << ref_v << endl;
 	}
 
